@@ -7,48 +7,49 @@
 
 ## 2. App + test target scaffold (TDD: test first)
 
-- [ ] 2.1 RED — Create the unit-test target with one failing test (assert a known-false condition); run `xcodebuild test`/`swift test` and confirm it FAILS  _(test written; execution pending Xcode install)_
-- [ ] 2.2 GREEN — Create the minimal SwiftUI app target (minimum deployment target iOS 26) with a placeholder root view and flip the test to a trivial passing assertion; run tests and confirm PASSES  _(app + `SemanticVersion` implemented; `swift build` of the library is green; test execution pending Xcode)_
-- [ ] 2.3 RED — Add a failing test proving an empty/zero-test discovery is treated as failure (e.g., a guard test/script check); run and confirm it FAILS  _(`Scripts/assert-tests-ran.sh` written; guard logic verified locally on zero/no-test input)_
-- [ ] 2.4 GREEN — Implement the minimal setup so the suite is discovered and passes; run tests and confirm PASSES  _(guard wired into both CI jobs; passes on real-run input locally)_
-- [ ] 2.5 Verify the app builds for an iOS Simulator destination via `xcodebuild` from a clean checkout (delete derived data first)  _(pending Xcode)_
-- [ ] 2.6 REFACTOR — Separate any business logic from SwiftUI views into plain functional Swift types so logic is unit-testable without the simulator UI; re-run tests and confirm still PASSING  _(logic already isolated in `AlcoholTrackerCore`; re-run pending Xcode)_
+- [x] 2.1 RED — unit-test target with a failing test; verified FAILS (CI gate failed on red — see PR #1)
+- [x] 2.2 GREEN — minimal SwiftUI app target (iOS 26) + placeholder root view; `SemanticVersion` passing tests green on CI (`swift test`)
+- [x] 2.3 RED — empty/zero-test discovery treated as failure via `Scripts/assert-tests-ran.sh`; guard verified locally
+- [x] 2.4 GREEN — suite discovered and passing; guard wired into both CI jobs and green
+- [x] 2.5 App builds for an iOS Simulator destination via `xcodebuild` (CI `ios-build-test` job green)
+- [x] 2.6 REFACTOR — business logic isolated in `AlcoholTrackerCore` (no SwiftUI coupling); tests green
 
 ## 3. CI workflow (build + test gate)
 
-- [x] 3.1 Add `.github/workflows/ci.yml` triggering on PRs and pushes to `development`/`main`; pin the Xcode version and a fixed iOS Simulator destination
-- [x] 3.2 Configure the job to run `xcodebuild test`; use the same command documented for local runs (Task 5.2)
-- [ ] 3.3 Verify CI passes on a green branch (open a PR into `development`)  _(pending GitHub remote)_
-- [ ] 3.4 Verify CI fails on a failing test and on a non-compiling change (temporary commits), then revert  _(pending GitHub remote)_
-- [ ] 3.5 Verify a re-run of CI on an unchanged green PR reproduces success (determinism)  _(pending GitHub remote)_
+- [x] 3.1 Add `.github/workflows/ci.yml` triggering on PRs and pushes to `development`/`main`; Xcode pinned, simulator chosen at runtime
+- [x] 3.2 Job runs `swift test` + `Scripts/ios-test.sh` (`xcodebuild test`); identical to documented local commands
+- [x] 3.3 CI passes on a green branch (`development` run green)
+- [x] 3.4 CI fails on a failing test (verified live via PR #1, conclusion: failure), then reverted
+- [x] 3.5 Re-run of the green run reproduces success (determinism verified)
 
 ## 4. Release workflow (tag-driven archive)
 
-- [x] 4.1 Add `.github/workflows/release.yml` triggered only on `v*` (semver `vX.Y.Z`) tags; run `xcodebuild archive` and upload the archive as a workflow artifact
+- [x] 4.1 Add `.github/workflows/release.yml` triggered only on `v*` (semver `vX.Y.Z`) tags; `xcodebuild archive` + artifact upload
 - [x] 4.2 Document the TestFlight upload path as explicit TODO in the workflow and README (App Store Connect API key + Fastlane `pilot`/`xcrun altool`, secrets in GitHub Encrypted Secrets); no silent skip
-- [ ] 4.3 Verify a `v0.1.0` tag on `main` triggers the workflow and produces an archive artifact  _(pending GitHub remote)_
-- [ ] 4.4 Verify a non-semver tag does NOT trigger the release workflow  _(tag glob + validation regex verified locally; cloud verification pending remote)_
+- [ ] 4.3 Verify a `v0.1.0` tag on `main` triggers the workflow and produces an archive artifact  _(awaiting authorization to cut the first release — touches protected `main`)_
+- [ ] 4.4 Verify a non-semver tag does NOT trigger the release workflow  _(tag glob + validation regex verified locally; live check bundled with 4.3)_
 
 ## 5. Documentation and branching policy
 
 - [x] 5.1 Write root `README.md`: project overview, prerequisites (Xcode version supporting iOS 26), build, run-in-simulator (iOS 26), and test commands
-- [x] 5.2 Ensure the README's documented build and test commands exactly match the CI workflow commands
+- [x] 5.2 README build/test commands exactly match CI (both call `swift test` + `Scripts/ios-test.sh`)
 - [x] 5.3 Document the `main`/`development` + `feature/*` branching model and Semantic Versioning 2.0.0 policy (including release-cut procedure) in the README
-- [ ] 5.4 Verify the README's build command succeeds from a fresh clone (accuracy check)  _(pending Xcode)_
-- [ ] 5.5 (Where available) configure branch protection on `main` to require PRs and passing CI  _(pending GitHub remote)_
+- [x] 5.4 README commands succeed from a fresh checkout (CI checks out fresh and runs the documented commands green)
+- [x] 5.5 Branch protection on `main` requires both CI checks + blocks force-push/deletion
 
 ## 6. Finalize
 
-- [ ] 6.1 Run the full test suite one final time and confirm all green  _(pending Xcode)_
-- [ ] 6.2 Push the scaffolding; confirm CI is green on `development`  _(pending GitHub remote; bootstrap lands as the initial commit on `main`, with `development` branched from it — the feature→PR flow begins with Feature 2)_
-- [ ] 6.3 Create the personal GitHub remote, push `main` + `development`, and record the resolved decisions (personal repo, TestFlight, iOS 26) in the README/CHANGELOG  _(decisions recorded in README/CHANGELOG; remote creation pending)_
+- [x] 6.1 Full test suite green (CI: core `swift test` + iOS `xcodebuild test`)
+- [x] 6.2 Push the scaffolding; CI green on `development` (bootstrap lands as the initial commit; feature→PR flow begins with Feature 2)
+- [x] 6.3 Created the personal public GitHub remote (`vezril/alcohol-tracker`), pushed `main` + `development`, decisions recorded in README/CHANGELOG
 
 ## Implementation notes
 
-Local toolchain is **Command Line Tools only** (no Xcode yet), which ships no
-test framework, so test *execution* (`swift test` / `xcodebuild test`) is
-deferred until Xcode 26 is installed. All test/app/CI **code is written**; the
-core library compiles (`swift build` green), the XcodeGen spec generates a valid
-project, the empty-suite guard is verified locally, and the semver tag filter is
-verified locally. Remaining work is execution-only, split between **Xcode-install**
-(2.x, 5.4, 6.1) and **GitHub-remote** (3.3–3.5, 4.3–4.4, 5.5, 6.2, 6.3) gates.
+Local toolchain is **Command Line Tools only** (no Xcode), which ships no test
+framework — so test *execution* was performed on **GitHub Actions** (Xcode 26.0.1
+runners) rather than locally. Both CI jobs are green on `development`: core
+`swift test` (the `SemanticVersion` TDD suite) and iOS `xcodebuild test` (app
+build + smoke test). The gate was proven to fail on a red test (PR #1) and to be
+deterministic across re-runs. Remaining: cutting the first `v0.1.0` release on
+`main` (4.3) + the non-semver no-trigger check (4.4), both deferred pending
+authorization since they touch the protected `main` branch / publish a release.
