@@ -11,13 +11,12 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Pinned for deterministic, drift-free runs (see ci spec: "CI is deterministic
-# across reruns"). iOS 26 requires Xcode 26, which is only present on recent
-# macOS runner images — adjust `runs-on`/`XCODE_VERSION`/`IOS_DESTINATION`
-# together if GitHub's available images change.
+# Xcode is pinned for deterministic, drift-free runs (see ci spec: "CI is
+# deterministic across reruns"). iOS 26 requires Xcode 26, present only on recent
+# macOS runner images — adjust `runs-on`/`XCODE_VERSION` if GitHub's images change.
+# The simulator device is chosen at runtime by Scripts/ios-test.sh (newest iPhone).
 env:
   XCODE_VERSION: "26.0"
-  IOS_DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=26.0"
 
 jobs:
   core-tests:
@@ -53,19 +52,7 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        working-directory: App
-        run: xcodegen generate
-
+      # Generates the project, selects the newest available iPhone simulator,
+      # runs the tests, and asserts a non-empty suite. Shared with local dev.
       - name: Build & test (iOS Simulator)
-        run: |
-          set -o pipefail
-          xcodebuild test \
-            -project App/AlcoholTracker.xcodeproj \
-            -scheme AlcoholTracker \
-            -destination "${IOS_DESTINATION}" \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee xcodebuild-test.log
-
-      - name: Assert tests actually ran
-        run: Scripts/assert-tests-ran.sh xcodebuild-test.log
+        run: Scripts/ios-test.sh

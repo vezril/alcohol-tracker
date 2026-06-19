@@ -51,11 +51,11 @@ cd App && xcodegen generate && cd ..
 # 2a. Open in Xcode and run (⌘R) on an iOS 26 simulator
 open App/AlcoholTracker.xcodeproj
 
-# 2b. …or build from the command line
+# 2b. …or build from the command line (generic destination — no specific sim needed)
 xcodebuild build \
   -project App/AlcoholTracker.xcodeproj \
   -scheme AlcoholTracker \
-  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.0' \
+  -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO
 ```
 
@@ -70,12 +70,9 @@ reproduces the CI gate.
 swift test
 
 # iOS app + smoke test (requires an iOS 26 simulator)
-cd App && xcodegen generate && cd ..
-xcodebuild test \
-  -project App/AlcoholTracker.xcodeproj \
-  -scheme AlcoholTracker \
-  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.0' \
-  CODE_SIGNING_ALLOWED=NO
+# Generates the project, picks the newest available iPhone simulator,
+# runs the tests, and asserts the suite was non-empty.
+Scripts/ios-test.sh
 ```
 
 We follow **Test-Driven Development** (Red → Green → Refactor): write a failing
