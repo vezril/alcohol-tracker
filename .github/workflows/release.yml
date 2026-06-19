@@ -1,0 +1,78 @@
+name: Release
+
+# Tag-driven release. Only semantic-version tags (vX.Y.Z) start this workflow.
+# The digit-anchored glob keeps clearly non-semver tags (e.g. `v1.2.x`,
+# `release-1`) from triggering it at all; the validate step rejects remaining
+# malformed cases (e.g. an extra component) before any build work.
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+env:
+  XCODE_VERSION: "26.0"
+
+jobs:
+  archive:
+    name: Build & archive
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate semantic-version tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "Release tag: $TAG"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is not a vX.Y.Z semantic version — aborting release."
+            exit 1
+          fi
+
+      - name: Select Xcode ${{ env.XCODE_VERSION }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: App
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project App/AlcoholTracker.xcodeproj \
+            -scheme AlcoholTracker \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/AlcoholTracker.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild-archive.log
+
+      - name: Upload archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlcoholTracker-${{ github.ref_name }}-xcarchive
+          path: ${{ runner.temp }}/AlcoholTracker.xcarchive
+          if-no-files-found: error
+
+      # TestFlight distribution is intentionally NOT yet wired up. We surface it
+      # loudly so a green release run is never mistaken for a shipped build.
+      - name: TestFlight distribution (TODO — not yet implemented)
+        run: |
+          echo "::warning::Archive built but NOT distributed to TestFlight."
+          cat <<'NOTE'
+          ────────────────────────────────────────────────────────────────────
+          TODO: Distribute to TestFlight. Remaining work for a later milestone:
+            1. Add code-signing: import a Distribution certificate + provisioning
+               profile (store as GitHub Encrypted Secrets), drop CODE_SIGNING_ALLOWED=NO.
+            2. Export a signed .ipa:  xcodebuild -exportArchive -exportOptionsPlist ...
+            3. Upload to TestFlight via either:
+                 - Fastlane:  fastlane pilot upload --ipa <path>
+                 - or:        xcrun altool --upload-app -f <ipa> \
+                                --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+               using an App Store Connect API key stored in GitHub Encrypted Secrets.
+          ────────────────────────────────────────────────────────────────────
+          NOTE

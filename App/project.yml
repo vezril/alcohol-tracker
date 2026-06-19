@@ -1,0 +1,63 @@
+name: AlcoholTracker
+
+options:
+  bundleIdPrefix: com.vezril.alcoholtracker
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+# Local Swift package holding the functional, unit-testable business logic.
+packages:
+  AlcoholTrackerCore:
+    path: ..
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    GENERATE_INFOPLIST_FILE: "YES"
+    DEVELOPMENT_TEAM: ""            # set locally / via CI secret when signing for TestFlight
+
+targets:
+  AlcoholTracker:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: AlcoholTrackerCore
+        product: AlcoholTrackerCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vezril.alcoholtracker
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+
+  AlcoholTrackerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: AlcoholTracker
+      - package: AlcoholTrackerCore
+        product: AlcoholTrackerCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vezril.alcoholtracker.tests
+
+schemes:
+  AlcoholTracker:
+    build:
+      targets:
+        AlcoholTracker: all
+        AlcoholTrackerTests: [test]
+    test:
+      targets:
+        - AlcoholTrackerTests
+      gatherCoverageData: true

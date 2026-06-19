@@ -1,0 +1,27 @@
+schema: spec-driven
+
+context: |
+  Product: iOS app to track alcohol intake (habit tracker), design-inspired by Intake (https://intakeapp.app/).
+  Tech stack: Swift, SwiftUI, HealthKit. Native iOS app; Apple Watch widget planned for later.
+  Repo: /Users/cference/Code/alcohol-tracker (not yet a git repo at proposal time).
+  Process constraints (non-negotiable):
+    - TDD required: Red-Green-Refactor. Tests written FIRST (failing), then implementation, then refactor.
+    - Tasks must explicitly sequence tests -> implementation -> refactor, and run tests after each implementation.
+    - Acceptance criteria use Given/When/Then with at least 2 edge cases per behavior.
+    - Functional programming style strongly preferred over imperative.
+    - Swift best practices and clean code required.
+    - A comprehensive root README.md must explain how to run the app and the tests.
+  Versioning/branching: semantic versioning; `main` = latest released package (CI builds/ships),
+    `development` = experimental dev builds. Alternative strategies may be proposed.
+  Planning cadence: plan ONE feature at a time (per the roadmap in initial-prompt.md).
+  Reference toolkit for skills/agents: /Users/cference/Code/claude-toolkit.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

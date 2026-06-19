@@ -1,0 +1,71 @@
+name: CI
+
+# Build + test gate. Runs on every PR and on pushes to the long-lived branches.
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+    branches: [development, main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Pinned for deterministic, drift-free runs (see ci spec: "CI is deterministic
+# across reruns"). iOS 26 requires Xcode 26, which is only present on recent
+# macOS runner images — adjust `runs-on`/`XCODE_VERSION`/`IOS_DESTINATION`
+# together if GitHub's available images change.
+env:
+  XCODE_VERSION: "26.0"
+  IOS_DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=26.0"
+
+jobs:
+  core-tests:
+    name: Core library (swift test)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode ${{ env.XCODE_VERSION }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Run package tests
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee swift-test.log
+
+      - name: Assert tests actually ran
+        run: Scripts/assert-tests-ran.sh swift-test.log
+
+  ios-build-test:
+    name: iOS app (xcodebuild test)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode ${{ env.XCODE_VERSION }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: App
+        run: xcodegen generate
+
+      - name: Build & test (iOS Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project App/AlcoholTracker.xcodeproj \
+            -scheme AlcoholTracker \
+            -destination "${IOS_DESTINATION}" \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild-test.log
+
+      - name: Assert tests actually ran
+        run: Scripts/assert-tests-ran.sh xcodebuild-test.log
